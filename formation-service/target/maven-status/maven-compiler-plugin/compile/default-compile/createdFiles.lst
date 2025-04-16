@@ -1,0 +1,6 @@
+com\bys\formation\entities\Formation.class
+com\bys\formation\FormationServiceApplication.class
+com\bys\formation\services\FormationService.class
+com\bys\formation\repositories\FormationRepository.class
+com\bys\formation\Controller\FormationController.class
+com\bys\formation\services\FormationServiceImpl.class

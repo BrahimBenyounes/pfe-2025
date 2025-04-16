@@ -1,0 +1,310 @@
+version: '3.8'
+
+services:
+
+  ## PostgreSQL Docker Notification
+  postgres-notification-service:
+    container_name: postgres-notification-service
+    image: postgres:latest
+    volumes:
+      - ./docker-compose-config/postgres-notification-service:/data/postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: notification_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /data/postgres
+    restart: always
+    networks:
+      - tokkom
+
+  ## MySQL Docker Order Service
+  mysql-order-service:
+    container_name: mysql-order-service
+    image: mysql:latest
+    volumes:
+      - ./docker-compose-config/mysql-order-service:/var/lib/mysql
+    ports:
+      - "3309:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: order_db
+    restart: always
+    networks:
+      - tokkom
+
+ ## MySQL Docker Formation Service
+  mysql-formation-service:
+    container_name: mysql-formation-service
+    image: mysql:8.0.36
+    volumes:
+      - ./docker-compose-config/mysql-formation-service:/var/lib/mysql
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: formation_db   
+    restart: always
+    networks:
+      - tokkom
+
+
+  ## MySQL Docker Login Service
+  mysql-login-service:
+    container_name: mysql-login-service
+    image: mysql:latest
+    volumes:
+      - ./docker-compose-config/mysql-login-service:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: login_db
+    restart: always
+    networks:
+      - tokkom
+
+  ## MySQL Docker Contact Service
+  mysql-contact-service:
+    container_name: mysql-contact-service
+    image: mysql:latest
+    volumes:
+      - ./docker-compose-config/mysql-contact-service:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: contact_db
+    restart: always
+    networks:
+      - tokkom
+
+  ## MongoDB Docker Product Service
+  mongo-product-service:
+    container_name: mongo-product-service
+    image: mongo:4.4.14-rc0-focal
+    volumes:
+      - ./docker-compose-config/mongo-product-service:/data/db
+    ports:
+      - "27017:27017"
+    restart: always
+    networks:
+      - tokkom
+
+  ## Eureka Server
+  discovery-service:
+    container_name: discovery-service
+    build:
+      context: ./discovery-service
+      dockerfile: Dockerfile
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_APPLICATION_JSON: '{
+              "server.port"  : "8761"
+            }'
+    networks:
+      - tokkom
+
+  ## Gateway Server
+  gateway-service:
+    container_name: gateway-service
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_APPLICATION_JSON: '{
+              "server.port"  : "8080",
+              "eureka.client.serviceUrl.defaultZone": "http://eureka:password@discovery-service:8761/eureka"
+            }'
+    depends_on:
+      - discovery-service
+    networks:
+      - tokkom
+
+  ## Contact Service
+  contact-service:
+    container_name: contact-service
+    build:
+      context: ./contact-service
+      dockerfile: Dockerfile
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_APPLICATION_JSON: '{
+              "spring.datasource.url" : "jdbc:mysql://mysql-contact-service:3306/contact_db?allowPublicKeyRetrieval=true&useSSL=false",
+              "spring.datasource.username"  : "root",
+              "spring.datasource.password"  : "root",
+              "spring.jpa.properties.hibernate.dialect" : "org.hibernate.dialect.MySQL5InnoDBDialect",
+              "spring.jpa.hibernate.ddl-auto" : "update",
+              "server.port"  : "8089",
+              "eureka.client.serviceUrl.defaultZone"  : "http://eureka:password@discovery-service:8761/eureka",
+              "management.endpoints.web.exposure.include": "*",
+              "management.endpoint.prometheus.enabled": "true",
+              "management.prometheus.metrics.export.enabled": "true",
+              "management.endpoint.health.show-details": "always",
+              "management.endpoint.metrics.enabled": "true"
+            }'
+    depends_on:
+      - discovery-service
+      - gateway-service
+      - mysql-contact-service
+    networks:
+      - tokkom
+
+  ## Login Service
+  login-service:
+    container_name: login-service
+    build:
+      context: ./login-service
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_APPLICATION_JSON: '{
+              "spring.datasource.url" : "jdbc:mysql://mysql-login-service:3306/login_db?allowPublicKeyRetrieval=true&useSSL=false",
+              "spring.datasource.username"  : "root",
+              "spring.datasource.password"  : "root",
+              "spring.jpa.properties.hibernate.dialect" : "org.hibernate.dialect.MySQL5InnoDBDialect",
+              "spring.jpa.hibernate.ddl-auto" : "update",
+              "server.port"  : "8084",
+              "eureka.client.serviceUrl.defaultZone"  : "http://eureka:password@discovery-service:8761/eureka",
+              "management.endpoints.web.exposure.include": "*",
+              "management.endpoint.prometheus.enabled": "true",
+              "management.prometheus.metrics.export.enabled": "true",
+              "management.endpoint.health.show-details": "always",
+              "management.endpoint.metrics.enabled": "true"
+            }'
+    depends_on:
+      - discovery-service
+      - gateway-service
+      - mysql-login-service
+    networks:
+      - tokkom
+
+  ## Formation Service
+  formation-service:
+    container_name: formation-service
+    build:
+      context: ./formation-service
+      dockerfile: Dockerfile
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_APPLICATION_JSON: '{
+              "spring.datasource.url" : "jdbc:mysql://mysql-formation-service:3306/formation_db?allowPublicKeyRetrieval=true&useSSL=false",
+              "spring.datasource.username"  : "root",
+              "spring.datasource.password"  : "root",
+              "spring.jpa.properties.hibernate.dialect" : "org.hibernate.dialect.MySQL5InnoDBDialect",
+              "spring.jpa.hibernate.ddl-auto" : "update",
+              "server.port"  : "8088",
+              "eureka.client.serviceUrl.defaultZone"  : "http://eureka:password@discovery-service:8761/eureka",
+              "management.endpoints.web.exposure.include": "*",
+              "management.endpoint.prometheus.enabled": "true",
+              "management.prometheus.metrics.export.enabled": "true",
+              "management.endpoint.health.show-details": "always",
+              "management.endpoint.metrics.enabled": "true"
+            }'
+    depends_on:
+      - discovery-service
+      - gateway-service
+      - mysql-formation-service
+    networks:
+      - tokkom
+
+  ## Notification Service
+  notification-service:
+    container_name: notification-service
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_APPLICATION_JSON: '{
+              "spring.datasource.url"  : "jdbc:postgresql://postgres-notification-service:5432/notification_service",
+              "spring.datasource.username" : "postgres",
+              "spring.datasource.password"  : "postgres",
+              "spring.jpa.hibernate.ddl-auto"  : "update",
+              "server.port"  : "8087",
+              "eureka.client.serviceUrl.defaultZone"  : "http://eureka:password@discovery-service:8761/eureka",
+              "management.endpoints.web.exposure.include": "*",
+              "management.endpoint.prometheus.enabled": "true",
+              "management.prometheus.metrics.export.enabled": "true",
+              "management.endpoint.health.show-details": "always",
+              "management.endpoint.metrics.enabled": "true"
+            }'
+    depends_on:
+      - discovery-service
+      - gateway-service
+      - postgres-notification-service
+    networks:
+      - tokkom
+
+  ## Order Service
+  order-service:
+    container_name: order-service
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_APPLICATION_JSON: '{
+              "spring.datasource.url" : "jdbc:mysql://mysql-order-service:3306/order_db?allowPublicKeyRetrieval=true&useSSL=false",
+              "spring.datasource.username"  : "root",
+              "spring.datasource.password"  : "root",
+              "spring.jpa.properties.hibernate.dialect" : "org.hibernate.dialect.MySQL5InnoDBDialect",
+              "spring.jpa.hibernate.ddl-auto" : "update",
+              "server.port"  : "8086",
+              "eureka.client.serviceUrl.defaultZone"  : "http://eureka:password@discovery-service:8761/eureka",
+              "productStockUrl"  : "http://gateway-service:8080/tokkom/api/product/stock/",
+              "management.endpoints.web.exposure.include": "*",
+              "management.endpoint.prometheus.enabled": "true",
+              "management.prometheus.metrics.export.enabled": "true",
+              "management.endpoint.health.show-details": "always",
+              "management.endpoint.metrics.enabled": "true"
+            }'
+    depends_on:
+      - discovery-service
+      - gateway-service
+      - mysql-order-service
+    networks:
+      - tokkom
+
+  ## Product Service
+  product-service:
+    container_name: product-service
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_APPLICATION_JSON: '{
+              "spring.data.mongodb.host"  : "mongo-product-service",
+              "spring.data.mongodb.port" : "27017",
+              "spring.data.mongodb.database"  : "tokkom_product_db",
+              "server.port"  : "8085",
+              "eureka.client.serviceUrl.defaultZone"  : "http://eureka:password@discovery-service:8761/eureka",
+              "management.endpoints.web.exposure.include": "*",
+              "management.endpoint.prometheus.enabled": "true",
+              "management.prometheus.metrics.export.enabled": "true",
+              "management.endpoint.health.show-details": "always",
+              "management.endpoint.metrics.enabled": "true"
+            }'
+    depends_on:
+      - discovery-service
+      - gateway-service
+      - mongo-product-service
+    networks:
+      - tokkom
+
+networks:
+  tokkom:
+    driver: bridge
+
+

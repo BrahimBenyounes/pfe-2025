@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: discovery-service
+spec:
+  selector:
+    app: discovery
+  ports:
+    - port: 8761
+      targetPort: 8761
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discovery
+  template:
+    metadata:
+      labels:
+        app: discovery
+    spec:
+      containers:
+        - name: discovery
+          image: your-dockerhub/discovery-service:latest
+          ports:
+            - containerPort: 8761
+          env:
+            - name: SPRING_APPLICATION_JSON
+              value: '{"server.port":"8761"}'

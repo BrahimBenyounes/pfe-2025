@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: formation-service
+spec:
+  selector:
+    app: formation
+  ports:
+    - port: 8088
+      targetPort: 8088
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: formation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: formation
+  template:
+    metadata:
+      labels:
+        app: formation
+    spec:
+      containers:
+        - name: formation
+          image: your-dockerhub/formation-service:latest
+          ports:
+            - containerPort: 8088
+          env:
+            - name: SPRING_APPLICATION_JSON
+              value: |
+                {
+                  "spring.datasource.url": "jdbc:mysql://mysql-formation-service:3306/formation_db?allowPublicKeyRetrieval=true&useSSL=false",
+                  "spring.datasource.username": "root",
+                  "spring.datasource.password": "root",
+                  "spring.jpa.properties.hibernate.dialect": "org.hibernate.dialect.MySQL5InnoDBDialect",
+                  "spring.jpa.hibernate.ddl-auto": "update",
+                  "server.port": "8088",
+                  "eureka.client.serviceUrl.defaultZone": "http://discovery-service:8761/eureka",
+                  "management.endpoints.web.exposure.include": "*",
+                  "management.endpoint.prometheus.enabled": "true",
+                  "management.prometheus.metrics.export.enabled": "true",
+                  "management.endpoint.health.show-details": "always",
+                  "management.endpoint.metrics.enabled": "true"
+                }

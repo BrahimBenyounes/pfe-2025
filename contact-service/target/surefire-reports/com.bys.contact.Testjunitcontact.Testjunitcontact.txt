@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.bys.contact.Testjunitcontact.Testjunitcontact
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.71 s - in com.bys.contact.Testjunitcontact.Testjunitcontact

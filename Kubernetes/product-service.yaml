@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+spec:
+  selector:
+    app: product
+  ports:
+    - port: 8085
+      targetPort: 8085
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product
+  template:
+    metadata:
+      labels:
+        app: product
+    spec:
+      containers:
+        - name: product
+          image: your-dockerhub/product-service:latest
+          ports:
+            - containerPort: 8085
+          env:
+            - name: SPRING_APPLICATION_JSON
+              value: |
+                {
+                  "spring.data.mongodb.host": "mongo-product-service",
+                  "spring.data.mongodb.port": "27017",
+                  "spring.data.mongodb.database": "tokkom_product_db",
+                  "server.port": "8085",
+                  "eureka.client.serviceUrl.defaultZone": "http://discovery-service:8761/eureka",
+                  "management.endpoints.web.exposure.include": "*",
+                  "management.endpoint.prometheus.enabled": "true",
+                  "management.prometheus.metrics.export.enabled": "true",
+                  "management.endpoint.health.show-details": "always",
+                  "management.endpoint.metrics.enabled": "true"
+                }
