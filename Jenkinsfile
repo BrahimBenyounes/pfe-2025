@@ -22,6 +22,16 @@ pipeline {
 
     stages {
 
+           stage('Junit and Mockito Tests') {
+             steps {
+                 script {
+                     dir('product') {
+                         sh 'mvn clean test'
+                     }
+                 }
+             }
+         }
+
 
            stage('SonarQube Analysis') {
             steps {
