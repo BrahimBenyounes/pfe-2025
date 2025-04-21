@@ -25,7 +25,7 @@ pipeline {
            stage('Junit and Mockito Tests') {
              steps {
                  script {
-                     dir('product') {
+                     dir('login-service') {
                          sh 'mvn clean test'
                      }
                  }
