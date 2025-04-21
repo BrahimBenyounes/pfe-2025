@@ -110,51 +110,27 @@ pipeline {
             }
         }
 
-     stage('Push Docker Images to Docker Hub') {
-    steps {
-        script {
-            try {
-                // تسجيل الدخول إلى Docker Hub باستخدام بيانات الاعتماد
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'DOCKER_HUB_PASSWORD', usernameVariable: 'DOCKER_HUB_USERNAME')]) {
-                    def loginCommand = "docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}"
-                    sh(script: loginCommand, returnStatus: true, label: 'Docker Login') // العودة مع حالة نجاح/فشل تسجيل الدخول
-                }
-
-                // قائمة الخدمات
-                def services = [
-                    "discovery-service", "gateway-service", "product-service",
-                    "formation-service", "order-service", "notification-service",
-                    "login-service", "contact-service"
-                ]
-
-                // لكل خدمة، نقوم بعمل وسم ورفع الصورة
-                services.each { serviceName ->
-                    def localTag = "${serviceName}:${DOCKER_IMAGE_VERSION}"
-                    def remoteTag = "${DOCKER_HUB_USERNAME}/${serviceName}:${DOCKER_IMAGE_VERSION}"
-                    
-                    echo "Tagging image ${localTag} as ${remoteTag}"
-
-                    // وسم الصورة (tag)
-                    sh "docker tag ${localTag} ${remoteTag}"
-                    
-                    // دفع الصورة إلى Docker Hub
-                    echo "Pushing image ${remoteTag} to Docker Hub"
-                    def pushStatus = sh(script: "docker push ${remoteTag}", returnStatus: true, label: "Docker Push: ${serviceName}")
-                    
-                    // تحقق من نجاح الدفع
-                    if (pushStatus != 0) {
-                        error "Failed to push image ${remoteTag} to Docker Hub"
-                    } else {
-                        echo "Successfully pushed image ${remoteTag} to Docker Hub"
+        
+        stage('Push Docker Images to Docker Hub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'DOCKER_HUB_PASSWORD', usernameVariable: 'DOCKER_HUB_USERNAME')]) {
+                        sh "docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}"
+                        def services = [
+                            "discovery-service", "gateway-service", "product-service",
+                            "formation-service", "order-service", "notification-service",
+                            "login-service", "contact-service"
+                        ]
+                        services.each { serviceName ->
+                            def localTag = "${serviceName}:${DOCKER_IMAGE_VERSION}"
+                            def remoteTag = "${DOCKER_HUB_USERNAME}/${serviceName}:${DOCKER_IMAGE_VERSION}"
+                            sh "docker tag ${localTag} ${remoteTag}"
+                            sh "docker push ${remoteTag}"
+                        }
                     }
                 }
-
-            } catch (Exception e) {
-                error "Docker push process failed: ${e.getMessage()}"
             }
         }
-    }
-}
 
 
     }
